@@ -1,74 +1,56 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Maths & Gestion — KEDGE</title>
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.29.0/full/pyodide.js"></script>
-  <script src="https://cdn.plot.ly/plotly-3.3.1.min.js"></script>
-  <style>
-    :root{--navy:#102a43;--blue:#137c8b;--mint:#e9f7f5;--gold:#e9a23b;--paper:#f5f7fa;--ink:#243b53}
-    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
-    aside{position:fixed;inset:0 auto 0 0;width:285px;background:var(--navy);color:white;padding:28px 20px;overflow:auto}
-    aside h1{font-size:25px;margin:0 0 4px}.small{opacity:.8;font-size:13px}.status{margin:18px 0;padding:9px;border-radius:8px;background:#ffffff18;font-size:13px}
-    nav button{width:100%;border:0;border-radius:8px;padding:10px 12px;margin:4px 0;text-align:left;color:#eaf3f8;background:transparent;cursor:pointer;font-weight:600}
-    nav button:hover,nav button.active{background:var(--blue);color:white}
-    main{margin-left:285px;padding:38px;max-width:1400px}.page{display:none}.page.active{display:block}
-    .hero{background:linear-gradient(125deg,var(--navy),var(--blue));color:white;border-radius:18px;padding:28px;margin-bottom:24px}.hero h2{margin:0;font-size:30px}
-    .panel{background:white;border-radius:14px;padding:20px;margin:18px 0;box-shadow:0 4px 16px #102a4310}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
-    label{display:block;font-weight:650}input,select{width:100%;padding:9px;border:1px solid #bcccdc;border-radius:8px;margin-top:5px;background:white}
-    .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}.metric{background:var(--mint);border-left:4px solid var(--blue);padding:14px;border-radius:9px}.metric b{display:block;font-size:12px;text-transform:uppercase}.metric span{font-size:22px;font-weight:750}
-    .formula{background:#f0f4f8;border-radius:9px;padding:13px;font-family:Cambria,serif;font-size:18px;overflow:auto}.note{padding:13px;border-left:4px solid var(--gold);background:#fff8e8;border-radius:8px}
-    details{background:#edf6ff;padding:12px 15px;border-radius:9px;margin-top:14px}summary{cursor:pointer;font-weight:700}.chart{height:390px}
-    @media(max-width:800px){aside{position:static;width:auto}main{margin:0;padding:18px}.hero h2{font-size:24px}.chart{height:330px}}
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mathématiques et décisions de gestion — KEDGE</title>
+  <meta name="description" content="Laboratoire interactif pour mobiliser les mathématiques dans des décisions de gestion.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='14' width='64' height='64' fill='%23172a54'/%3E%3Cpath d='M15 43 27 20l8 15 6-10 8 18' fill='none' stroke='%23ff684d' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<aside><h1>Maths & Gestion</h1><div class="small">Première année — KEDGE<br>Badr Aboufarasse</div><div id="status" class="status">Chargement du moteur Python…</div><nav id="nav"></nav><hr><p class="small">Faites d'abord le calcul sur papier, puis utilisez la simulation pour vérifier et explorer.</p></aside>
-<main id="pages"></main>
-<script type="text/python" id="pycode">
-from math import sqrt
-def calculate(kind, p):
-    if kind=='budget':
-        t,m,d=p; c=t*m; di=c*d; return [c,di,c-di,t-c]
-    if kind=='growth':
-        initial,rate,years=p; vals=[initial*(1+rate)**n for n in range(int(years)+1)]; return [vals[-1],(1+rate)**int(years),vals]
-    if kind=='offers':
-        fa,ua,fb,ub=p; q=None if abs(ua-ub)<1e-12 else (fb-fa)/(ua-ub); return [q]
-    if kind=='quadratic':
-        price,fixed,var,s=p; a=-s;b=price-var;c=-fixed;D=b*b-4*a*c;x=-b/(2*a);y=a*x*x+b*x+c;roots=[] if D<0 else sorted([(-b-sqrt(D))/(2*a),(-b+sqrt(D))/(2*a)]);return [D,x,y,roots,a,b,c]
-    if kind=='marginal':
-        F,a,b,price,d,q=p;C=F+a*q+b*q*q;R=price*q-d*q*q;mc=a+2*b*q;mr=price-2*d*q;qs=max(0,(price-a)/(2*(b+d)));return [C,R,R-C,mc,mr,mr-mc,qs]
-    if kind=='ads':
-        vmax,k,margin,cap=p; opt=max(0,sqrt(max(0,margin*vmax*k))-k);rec=min(cap,opt);sales=vmax*rec/(rec+k) if rec+k else 0;return [opt,rec,margin*sales-rec]
-    if kind=='product':
-        A,B,F,c,price,cap=p; demand=max(0,A-B*price);q=min(demand,cap);return [demand,q,price*q,price*q-F-c*q]
-  </script>
-<script>
-const specs=[
- {id:'home',label:'Accueil',title:'Mathématiques appliquées à la gestion',sub:'Une boîte à outils interactive pour raisonner, calculer et décider.',body:`<div class="panel"><h3>Parcours</h3><div class="grid"><div><b>1. Fractions</b><p>Budgets, proportions, remise et TVA.</p></div><div><b>2. Puissances</b><p>Croissance composée et offres.</p></div><div><b>3. Second degré</b><p>Seuils de rentabilité et maximum.</p></div><div><b>4. Dérivées</b><p>Analyse marginale et optimum.</p></div><div><b>5. Fonctions</b><p>Publicité et contrainte budgétaire.</p></div><div><b>Cas intégrateur</b><p>Prix, demande, capacité et profit.</p></div></div></div><div class="note">Commencez avec les valeurs proposées, refaites le calcul sur papier, puis testez d'autres hypothèses.</div>`},
- {id:'s1',label:'Séance 1 — Fractions',title:'Fractions et proportions',sub:'Répartir un budget marketing et analyser une remise commerciale.',inputs:[['ca',250000,'Chiffre d’affaires (€)'],['mr',15,'Part marketing (%)'],['dr',42,'Part digitale (%)'],['price',120,'Prix catalogue HT (€)'],['disc',15,'Remise (%)'],['vat',20,'TVA (%)']],run:'budget'},
- {id:'s2',label:'Séance 2 — Puissances',title:'Puissances et degré 1',sub:'Croissance composée et comparaison de deux offres.',inputs:[['initial',10000,'Valeur initiale (€)'],['rate',4,'Taux annuel (%)'],['years',8,'Nombre d’années'],['fa',200,'Forfait A (€)'],['ua',4,'Coût unitaire A (€)'],['fb',50,'Forfait B (€)'],['ub',7,'Coût unitaire B (€)']],run:'growth'},
- {id:'s3',label:'Séance 3 — Second degré',title:'Second degré et inéquations',sub:'Déterminer les seuils de rentabilité et le profit maximal.',inputs:[['p',80,'Prix unitaire (€)'],['F',500,'Coût fixe (€)'],['c',20,'Coût variable (€)'],['sat',1,'Saturation']],run:'quadratic'},
- {id:'s4',label:'Séance 4 — Dérivées',title:'Dérivées et analyse marginale',sub:'Comprendre le coût d’une unité supplémentaire et rechercher l’optimum.',inputs:[['F',500,'Coût fixe (€)'],['a',30,'Coefficient a'],['b',.5,'Coefficient b'],['p',100,'Prix potentiel (€)'],['d',.8,'Pente de demande'],['q',20,'Quantité étudiée']],run:'marginal'},
- {id:'s5',label:'Séance 5 — Fonctions',title:'Étude de fonctions',sub:'Optimiser un budget publicitaire avec saturation des ventes.',inputs:[['vmax',1200,'Ventes maximales'],['k',20000,'Saturation k (€)'],['margin',80,'Marge par vente (€)'],['cap',50000,'Budget maximal (€)']],run:'ads'},
- {id:'case',label:'Cas intégrateur',title:'Lancement d’un produit',sub:'Relier demande, prix, capacité, coûts et profit.',inputs:[['A',1000,'Demande potentielle A'],['B',10,'Sensibilité au prix B'],['F',5000,'Coût fixe (€)'],['c',20,'Coût variable unitaire (€)'],['cap',600,'Capacité maximale'],['price',55,'Prix testé (€)']],run:'product'}
-];
-const eur=x=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(x),num=(x,d=2)=>Number(x).toLocaleString('fr-FR',{maximumFractionDigits:d});
-let py;
-function layout(s){let fields=s.inputs?`<div class="panel"><div class="grid">${s.inputs.map(i=>`<label>${i[2]}<input id="${s.id}_${i[0]}" type="number" step="any" value="${i[1]}"></label>`).join('')}</div></div><div id="${s.id}_out"></div>`:s.body;return `<section class="page" id="${s.id}"><div class="hero"><h2>${s.title}</h2><div>${s.sub}</div></div>${fields}</section>`}
-document.querySelector('#pages').innerHTML=specs.map(layout).join('');document.querySelector('#nav').innerHTML=specs.map(s=>`<button data-page="${s.id}">${s.label}</button>`).join('');
-function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));history.replaceState(null,'','#'+id);let s=specs.find(x=>x.id===id);if(s?.run&&py)compute(s)}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.page));document.querySelectorAll('input').forEach(x=>x.oninput=()=>{let s=specs.find(z=>x.id.startsWith(z.id+'_'));if(py&&s)compute(s)});
-async function call(kind,p){py.globals.set('kind_js',kind);py.globals.set('params_js',p);let r=await py.runPythonAsync('calculate(kind_js, params_js)');let out=r.toJs({dict_converter:Object.fromEntries});r.destroy();return out}
-function vals(s){return s.inputs.map(i=>+document.querySelector('#'+s.id+'_'+i[0]).value)}
-async function compute(s){let v=vals(s),r,out='',data=[];
- if(s.run==='budget'){r=await call('budget',[v[0],v[1]/100,v[2]/100]);let net=v[3]*(1-v[4]/100),ttc=net*(1+v[5]/100);out=`<div class="metrics"><div class="metric"><b>Budget marketing</b><span>${eur(r[0])}</span></div><div class="metric"><b>Budget digital</b><span>${eur(r[1])}</span></div><div class="metric"><b>Budget non marketing</b><span>${eur(r[3])}</span></div></div><div class="formula">B<sub>marketing</sub> = ${num(v[0])} × ${num(v[1]/100)} = ${eur(r[0])}<br>P<sub>remisé HT</sub> = ${eur(net)} ; P<sub>TTC</sub> = ${eur(ttc)}</div><div id="chart_s1" class="chart"></div>`;data=[{values:[r[1],r[2],r[3]],labels:['Digital','Marketing hors digital','Autres usages'],type:'pie',hole:.42}];}
- if(s.run==='growth'){r=await call('growth',[v[0],v[1]/100,v[2]]);let o=await call('offers',v.slice(3));out=`<div class="metrics"><div class="metric"><b>Valeur finale</b><span>${eur(r[0])}</span></div><div class="metric"><b>Coefficient global</b><span>${num(r[1],4)}</span></div><div class="metric"><b>Seuil des offres</b><span>${o[0]===null?'Aucun':num(o[0])}</span></div></div><div class="formula">Vₙ = V₀(1+t)ⁿ = ${num(v[0])} × (1+${num(v[1]/100)})<sup>${v[2]}</sup> = ${eur(r[0])}</div><div id="chart_s2" class="chart"></div>`;data=[{x:r[2].map((_,i)=>i),y:r[2],type:'scatter',mode:'lines+markers',name:'Valeur'}];}
- if(s.run==='quadratic'){r=await call('quadratic',v);out=`<div class="metrics"><div class="metric"><b>Discriminant Δ</b><span>${num(r[0])}</span></div><div class="metric"><b>Quantité du sommet</b><span>${num(r[1])}</span></div><div class="metric"><b>Profit maximal</b><span>${eur(r[2])}</span></div></div><div class="formula">P(q) = ${num(r[4])}q² + ${num(r[5])}q + (${num(r[6])})<br>Racines : ${r[3].length?r[3].map(x=>num(x)).join(' et '):'aucune racine réelle'}</div><div id="chart_s3" class="chart"></div>`;let xmax=r[3].length?Math.max(10,r[3][1]*1.25):100,x=Array.from({length:201},(_,i)=>i*xmax/200);data=[{x,y:x.map(q=>r[4]*q*q+r[5]*q+r[6]),type:'scatter',mode:'lines',name:'Profit'}];}
- if(s.run==='marginal'){r=await call('marginal',v);out=`<div class="metrics"><div class="metric"><b>Coût marginal</b><span>${eur(r[3])}</span></div><div class="metric"><b>Recette marginale</b><span>${eur(r[4])}</span></div><div class="metric"><b>Quantité optimale</b><span>${num(r[6])}</span></div></div><div class="formula">C′(q) = ${num(v[1])} + ${num(2*v[2])}q ; R′(q) = ${num(v[3])} − ${num(2*v[4])}q</div><div id="chart_s4" class="chart"></div>`;let x=Array.from({length:101},(_,i)=>i*Math.max(60,r[6]*2)/100);data=[{x,y:x.map(q=>v[1]+2*v[2]*q),name:'Coût marginal'},{x,y:x.map(q=>v[3]-2*v[4]*q),name:'Recette marginale'}];}
- if(s.run==='ads'){r=await call('ads',v);out=`<div class="metrics"><div class="metric"><b>Optimum théorique</b><span>${eur(r[0])}</span></div><div class="metric"><b>Budget recommandé</b><span>${eur(r[1])}</span></div><div class="metric"><b>Profit associé</b><span>${eur(r[2])}</span></div></div><div class="formula">x* = √(m × Vmax × k) − k = ${eur(r[0])}</div><div id="chart_s5" class="chart"></div>`;let mx=Math.max(1000,v[3]*1.3,r[0]*1.3),x=Array.from({length:201},(_,i)=>i*mx/200);data=[{x,y:x.map(z=>v[2]*v[0]*z/(z+v[1])-z),name:'Profit'}];}
- if(s.run==='product'){r=await call('product',[v[0],v[1],v[2],v[3],v[5],v[4]]);let maxp=Math.max(10,v[0]/v[1]),x=Array.from({length:251},(_,i)=>i*maxp/250),profits=[];for(let p of x){let z=await call('product',[v[0],v[1],v[2],v[3],p,v[4]]);profits.push(z[3])}let im=profits.indexOf(Math.max(...profits));out=`<div class="metrics"><div class="metric"><b>Demande</b><span>${num(r[0],0)}</span></div><div class="metric"><b>Ventes réalisables</b><span>${num(r[1],0)}</span></div><div class="metric"><b>Profit testé</b><span>${eur(r[3])}</span></div><div class="metric"><b>Prix recommandé</b><span>${eur(x[im])}</span></div></div><div class="formula">q(p)=A−Bp ; P(p)=pq−F−cq</div><div id="chart_case" class="chart"></div>`;data=[{x,y:profits,name:'Profit'}];}
- document.querySelector('#'+s.id+'_out').innerHTML=`<div class="panel">${out}<details><summary>Lecture pédagogique</summary><p>Le résultat dépend des paramètres saisis. Vérifiez les unités, le domaine réalisable et interprétez toujours la valeur obtenue dans le contexte de gestion.</p></details></div>`;if(data.length)Plotly.newPlot('chart_'+s.id,data,{title:s.title,margin:{t:50,r:20,b:50,l:65},xaxis:{title:s.run==='product'?'Prix':'Valeur du paramètre'},yaxis:{title:'Montant'}},{responsive:true,displaylogo:false});}
-(async()=>{py=await loadPyodide();await py.runPythonAsync(document.querySelector('#pycode').textContent);document.querySelector('#status').textContent='✓ Moteur Python prêt (Pyodide)';show((location.hash||'#home').slice(1));})().catch(e=>{document.querySelector('#status').textContent='Erreur de chargement : '+e.message});
-show((location.hash||'#home').slice(1));
-</script></body></html>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="brand-mark">M</div><div><strong>Maths & décisions</strong><span>KEDGE · EBP 1</span></div></div>
+      <p class="eyebrow">ALLER PLUS LOIN</p>
+      <nav id="nav" aria-label="Laboratoires de gestion"></nav>
+      <button class="resource-btn" id="openResources">⌁ Boîte à outils</button>
+      <div class="python-state" id="pythonState"><span></span>Initialisation du moteur Python…</div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" id="menuBtn" aria-label="Ouvrir le menu">☰</button>
+        <div><p class="kicker" id="labIndex">LABORATOIRE 1</p><h1 id="labTitle">Arbitrer un budget</h1></div>
+        <div class="mode-chip">Simulation locale · aucune donnée transmise</div>
+      </header>
+      <section class="mission" aria-labelledby="missionTitle">
+        <div><p class="section-label">VOTRE MISSION</p><h2 id="missionTitle"></h2><p id="missionText"></p></div>
+        <div class="concept"><span>Notions mobilisées</span><strong id="conceptText"></strong></div>
+      </section>
+      <section class="workspace">
+        <div class="panel controls-panel">
+          <div class="panel-head"><div><p class="section-label">HYPOTHÈSES</p><h2>Testez votre scénario</h2></div><button class="ghost" id="resetBtn">Réinitialiser</button></div>
+          <div id="controls" class="controls"></div>
+          <button class="primary" id="runBtn" disabled>Analyser la décision</button>
+          <div class="formula-box"><span>Modèle mobilisé</span><div id="formula"></div></div>
+        </div>
+        <div class="results-column">
+          <div id="metrics" class="metrics"></div>
+          <div class="panel chart-panel"><div class="panel-head"><div><p class="section-label">VISUALISER</p><h2 id="chartTitle">Résultats du scénario</h2></div><button class="ghost" id="expandChart">Agrandir</button></div><div id="chart" role="img" aria-label="Graphique des résultats"></div></div>
+          <div class="decision-card" id="decisionCard"><div class="decision-icon">→</div><div><p class="section-label">RECOMMANDATION</p><h2 id="decision"></h2><p id="explanation"></p></div></div>
+        </div>
+      </section>
+      <section class="student-task panel">
+        <div><p class="section-label">À VOUS DE DÉCIDER</p><h2 id="question"></h2><p>Rédigez une recommandation courte en citant au moins un résultat et une limite du modèle.</p></div>
+        <div class="answer-area"><textarea id="answer" rows="4" placeholder="Notre recommandation est de… parce que… Cette conclusion dépend toutefois de…"></textarea><button class="secondary" id="showGuide">Afficher un guide d'analyse</button><div class="guide" id="guide"></div></div>
+      </section>
+    </main>
+  </div>
+  <dialog id="resourceDialog"><button class="dialog-close" id="closeResources" aria-label="Fermer">×</button><p class="section-label">RESSOURCES DU COURS</p><h2>Boîte à outils mathématique</h2><div id="resourceContent" class="resource-grid"></div></dialog>
+  <dialog id="chartDialog"><button class="dialog-close" id="closeChart" aria-label="Fermer">×</button><div id="chartLarge"></div></dialog>
+  <script src="app.js"></script>
+</body>
+</html>
